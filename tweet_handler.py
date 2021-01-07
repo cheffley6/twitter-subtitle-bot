@@ -2,6 +2,8 @@ from config import misc, twitter_credentials
 from urllib.request import urlretrieve
 from pprint import pprint
 from twython import Twython
+from google.cloud import storage
+
 import ffmpeg
 
 
@@ -34,9 +36,28 @@ def reply_to_tweet(text, tweet_id):
         tweet_id = response['id']
         text = text[280:]
 
+def upload_blob(bucket_name=misc.BUCKET_NAME, source_file_name=misc.LATEST_AUDIO_NAME, destination_blob_name=misc.DESTINATION_BLOB_NAME):
+    '''Uploads a file to the bucket.'''
+
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+
+    blob.upload_from_filename(source_file_name)
+
+    print(
+        "File {} uploaded to {}.".format(
+            source_file_name, destination_blob_name
+        )
+    )
+
 def process_one_video(tweet_id, mention_id):
-    download_video(tweet_id)
+    # download_video(tweet_id)
     write_video_to_audio_file()
+    upload_blob()
 
     text = "nope" # later this should be assigned to the speech-to-text result
     reply_to_tweet(text, mention_id)
+
+process_one_video(1, 1)
