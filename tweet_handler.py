@@ -9,14 +9,14 @@ twitter = Twython(
     twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET,
     twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
 
-def download(id, filename):
+def download_video(id):
     tweet = twitter.show_status(id=id)
     pprint(tweet['text'])
 
     # problem: twitter doesn't allow you to fetch the raw video for some tweets
     video_url = tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
 
-    urlretrieve(video_url, filename)
+    urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
 
 # writes video's audio to LATEST_AUDIO_NAME
 def write_video_to_audio_file():
@@ -26,11 +26,17 @@ def write_video_to_audio_file():
     stream = ffmpeg.output(audio, misc.LATEST_AUDIO_NAME).overwrite_output()
     ffmpeg.run(stream)   
 
-# TO-DO: this must post a reply to the original tweet with the predicted text from the audio
-def reply_to_tweet(text):
-    pass
 
-def process_one_video(tweet_id):
-    download(tweet_id, misc.LATEST_VIDEO_NAME)
+def reply_to_tweet(text, tweet_id):
+    while len(text) > 0:
+        # convert into multiple tweets
+        response = twitter.update_status(status=text[:280], in_reply_to_status_id=tweet_id)
+        tweet_id = response['id']
+        text = text[280:]
+
+def process_one_video(tweet_id, mention_id):
+    download_video(tweet_id)
     write_video_to_audio_file()
 
+    text = "nope" # later this should be assigned to the speech-to-text result
+    reply_to_tweet(text, mention_id)
