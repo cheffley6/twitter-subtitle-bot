@@ -29,12 +29,6 @@ class StreamListener(tweepy.StreamListener):
 
         process_one_video(tweet_id)
 
-        
-        # audio_path = convert_to_audio(video_path)
-        # google_storage_uri = upload_to_cloud(audio_path)
-        # response = recognize(AUDIO_CONFIG, google_storage_uri)
-        # reply(status, response)
-
     def on_error(self, status_code):
         print("Encountered streaming error (", status_code, ")")
         sys.exit()
