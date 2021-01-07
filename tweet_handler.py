@@ -7,11 +7,22 @@ from google.cloud import storage, speech
 import ffmpeg
 import librosa
 import soundfile as sf
+import os
 
 
 twitter = Twython(
     twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET,
     twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
+
+
+
+def handle_m3u8(video_url):
+
+        command = "ffmpeg -i {} -bsf:a aac_adtstoasc -vcodec copy -c copy -crf 50 {} -y"
+        print('executing: ')
+        print(command.format(video_url, misc.LATEST_VIDEO_NAME))
+        os.system(command.format(video_url, misc.LATEST_VIDEO_NAME))
+
 
 def download_video(id):
     tweet = twitter.show_status(id=id, tweet_mode="extended")
@@ -21,11 +32,17 @@ def download_video(id):
     video_url = None
     try:
         video_url = tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
+        print("Downloading " + video_url)
+        if ".m3u8" in video_url:
+            print("got a m3u8")
+            handle_m3u8(video_url)
+        else:
+            urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
     except:
         raise Exception("Couldn't find video.")
-    print("Downloading " + video_url)
+    
 
-    urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
+    
 
 # writes video's audio to LATEST_AUDIO_NAME
 def write_video_to_audio_file():
