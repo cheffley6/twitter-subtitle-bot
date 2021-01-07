@@ -2,7 +2,7 @@ from config import misc, twitter_credentials
 from urllib.request import urlretrieve
 from pprint import pprint
 from twython import Twython
-from google.cloud import storage
+from google.cloud import storage, speech
 
 import ffmpeg
 
@@ -12,10 +12,10 @@ twitter = Twython(
     twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
 
 def download_video(id):
-    tweet = twitter.show_status(id=id)
-    pprint(tweet['text'])
+    tweet = twitter.show_status(id=id, tweet_mode="extended")
 
     # problem: twitter doesn't allow you to fetch the raw video for some tweets
+    # pprint(tweet, open("checkmeout3.txt", "w"))
     video_url = tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
 
     urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
@@ -25,7 +25,7 @@ def write_video_to_audio_file():
     video_path = misc.LATEST_VIDEO_NAME
     stream = ffmpeg.input(video_path)
     audio = stream.audio
-    stream = ffmpeg.output(audio, misc.LATEST_AUDIO_NAME).overwrite_output()
+    stream = ffmpeg.output(audio, misc.LATEST_AUDIO_NAME, ac=2).overwrite_output()
     ffmpeg.run(stream)   
 
 
@@ -52,12 +52,40 @@ def upload_blob(bucket_name=misc.BUCKET_NAME, source_file_name=misc.LATEST_AUDIO
         )
     )
 
+
+def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_BLOB_NAME):
+    '''Asynchronously transcribes the audio file specified by the gcs_uri.'''
+
+    client = speech.SpeechClient()
+
+    audio = speech.RecognitionAudio(uri=gcs_uri)
+    config = speech.RecognitionConfig(
+        encoding=speech.RecognitionConfig.AudioEncoding.FLAC,
+        sample_rate_hertz=44100,
+        audio_channel_count=2,
+        language_code="en-US",
+    )
+
+    operation = client.long_running_recognize(config=config, audio=audio)
+
+    print("Waiting for operation to complete...")
+    response = operation.result(timeout=90)
+
+    # Each result is for a consecutive portion of the audio. Iterate through
+    # them to get the transcripts for the entire audio file.
+    transcription = "Transcript: "
+    for result in response.results:
+        # The first alternative is the most likely one for this portion.
+        print("result: ", result)
+        print("Confidence: {}".format(result.alternatives[0].confidence))
+        input()
+        transcription += result.alternatives[0].transcript
+    
+    return transcription
+
 def process_one_video(tweet_id, mention_id):
-    # download_video(tweet_id)
+    download_video(tweet_id)
     write_video_to_audio_file()
     upload_blob()
-
-    text = "nope" # later this should be assigned to the speech-to-text result
+    text = transcribe_gcs()
     reply_to_tweet(text, mention_id)
-
-process_one_video(1, 1)
