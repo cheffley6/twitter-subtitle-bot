@@ -34,7 +34,6 @@ def download_video(id):
         video_url = tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
         print("Downloading " + video_url)
         if ".m3u8" in video_url:
-            print("got a m3u8")
             handle_m3u8(video_url)
         else:
             urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
