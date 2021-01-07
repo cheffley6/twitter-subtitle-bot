@@ -5,6 +5,8 @@ from twython import Twython
 from google.cloud import storage, speech
 
 import ffmpeg
+import librosa
+import soundfile as sf
 
 
 twitter = Twython(
@@ -25,8 +27,12 @@ def write_video_to_audio_file():
     video_path = misc.LATEST_VIDEO_NAME
     stream = ffmpeg.input(video_path)
     audio = stream.audio
-    stream = ffmpeg.output(audio, misc.LATEST_AUDIO_NAME, ac=2).overwrite_output()
-    ffmpeg.run(stream)   
+    stream = ffmpeg.output(audio, misc.LATEST_AUDIO_NAME, ac=1, sample_rate=44100).overwrite_output()
+    ffmpeg.run(stream)
+
+    y, s = librosa.load(misc.LATEST_AUDIO_NAME)
+    y = librosa.resample(y, s, misc.TARGET_SAMPLE_RATE)
+    sf.write(misc.LATEST_AUDIO_NAME, y, misc.TARGET_SAMPLE_RATE, format='flac')
 
 
 def reply_to_tweet(text, tweet_id):
@@ -62,7 +68,7 @@ def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_B
     config = speech.RecognitionConfig(
         encoding=speech.RecognitionConfig.AudioEncoding.FLAC,
         sample_rate_hertz=44100,
-        audio_channel_count=2,
+        audio_channel_count=1,
         language_code="en-US",
     )
 
