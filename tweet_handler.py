@@ -4,7 +4,8 @@ from pprint import pprint
 from twython import Twython
 from google.cloud import storage, speech
 
-import ffmpeg
+from Transcription import Transcription
+from moviepy import editor
 import librosa
 import soundfile as sf
 import os
@@ -14,7 +15,24 @@ twitter = Twython(
     twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET,
     twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
 
+def annotate(clip, txt, txt_color='black', fontsize=None, font='Xolonium-Bold'):
 
+    # if fontsize == None:
+    #     fontsize = int(clip.size[0] / 15)
+    """ Writes a text at the bottom of the clip. """
+    txtclip = editor.TextClip(txt, fontsize=fontsize, size=(clip.size[0], int(clip.size[1] / 5)), font=font, color=txt_color, method="label")
+
+    cvc = editor.CompositeVideoClip([clip, txtclip.set_pos(('center', 'bottom'))])
+    return cvc.set_duration(clip.duration)
+
+
+
+def generate_captioned_video(transcriptions, video_path=misc.LATEST_VIDEO_NAME):
+    video = editor.VideoFileClip(video_path)
+    annotated_clips = [annotate(video.subclip(t.get_start_time(), t.get_end_time()), t.get_text()) for t in transcriptions]
+    final_clip = editor.concatenate_videoclips(annotated_clips)
+    final_clip.write_videofile("annotated_video.mp4")
+    
 
 def handle_m3u8(video_url):
 
@@ -102,22 +120,36 @@ def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_B
 
     # Each result is for a consecutive portion of the audio. Iterate through
     # them to get the transcripts for the entire audio file.
-    transcription = "Transcript: "
+    raw_transcription = "Transcript: "
+
+    transcriptions = []
+
     for result in response.results:
         # The first alternative is the most likely one for this portion.
         print("result: ", result)
         print("Confidence: {}".format(result.alternatives[0].confidence))
-        transcription += result.alternatives[0].transcript
+        print("words?", result.alternatives[0].words)
+        earliest, latest = 1000000000, -1
+        for word in result.alternatives[0].words:
+            earliest = min(earliest, word.start_time.seconds)
+            latest = max(latest, word.end_time.seconds)
+        raw_transcription += result.alternatives[0].transcript
+        
+        transcriptions.append(Transcription(result.alternatives[0].transcript, earliest, latest))
     
-    return transcription
+    generate_captioned_video(transcriptions)
+
+    return raw_transcription
 
 def process_one_video(tweet_id, mention_id):
-    try:
-        download_video(tweet_id)
-    except:
-        reply_to_tweet("Sorry, we couldn't find a video.", mention_id)
-        return
-    write_video_to_audio_file()
+    # try:
+    #     download_video(tweet_id)
+    # except:
+    #     reply_to_tweet("Sorry, we couldn't find a video.", mention_id)
+    #     return
+    # write_video_to_audio_file()
     upload_blob()
     text = transcribe_gcs()
-    reply_to_tweet(text, mention_id)
+    # reply_to_tweet(text, mention_id)
+
+process_one_video(1, 1)
