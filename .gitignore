@@ -1,3 +1,4 @@
 config/twitter_credentials.py
 twitter_video.mp4
 twitter_audio.flac
+venv
