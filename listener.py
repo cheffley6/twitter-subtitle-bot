@@ -44,5 +44,5 @@ if __name__ == "__main__":
     streamListener = StreamListener()
     stream = tweepy.Stream(auth=api.auth, listener=streamListener,tweet_mode='extended')
 
-    tags = ["@its_1033"]
+    tags = ["@VideoSubtitle]
     stream.filter(track=tags)
