@@ -17,11 +17,18 @@ def download(id, filename):
 
     urlretrieve(video_url, filename)
 
+# for now, only convert one video at a time
+# TO-DO: determine if speech-to-text requires wav or mp3
+# TO-DO:this must write the video's audio into misc.LATEST_AUDIO_NAME
+def convert_to_audio():
+    video_path = misc.LATEST_VIDEO_NAME
+    pass
+
+# TO-DO: this must post a reply to the original tweet with the predicted text from the audio
+def reply_to_tweet(text):
+    pass
 
 def process_one_video(tweet_id):
     download(tweet_id, misc.LATEST_VIDEO_NAME)
     # audio_path = convert_to_audio(video_path)
-    # google_storage_uri = upload_to_cloud(audio_path)
-    # response = recognize(AUDIO_CONFIG, google_storage_uri)
-    # reply(status, response)
 
