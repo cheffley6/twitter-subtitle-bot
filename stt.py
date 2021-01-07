@@ -1,21 +1,4 @@
-from google.cloud import storage
 from google.cloud import speech
-
-
-def upload_blob(bucket_name, source_file_name, destination_blob_name):
-    '''Uploads a file to the bucket.'''
-
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-
-    blob.upload_from_filename(source_file_name)
-
-    print(
-        "File {} uploaded to {}.".format(
-            source_file_name, destination_blob_name
-        )
-    )
 
 def transcribe_gcs(gcs_uri):
     '''Asynchronously transcribes the audio file specified by the gcs_uri.'''
@@ -45,7 +28,6 @@ def transcribe_gcs(gcs_uri):
 bucket_name = "ulti-tweet-audio-bucket"
 source_file_name = "listen_Speech_16k8b.flac"
 destination_blob_name = "listen_Speech_16k8b"
-# upload_blob(bucket_name, source_file_name, destination_blob_name)
 
 gcs_uri = "gs://" + bucket_name + "/" + destination_blob_name
 transcribe_gcs(gcs_uri)
