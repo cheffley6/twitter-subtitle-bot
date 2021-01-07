@@ -24,10 +24,11 @@ class StreamListener(tweepy.StreamListener):
             return "Error: Not in reply to anything"
         
         tweet_id = status.in_reply_to_status_id
+        mention_id = status.id
 
         print(tweet_id)
 
-        process_one_video(tweet_id)
+        process_one_video(tweet_id, mention_id)
 
     def on_error(self, status_code):
         print("Encountered streaming error (", status_code, ")")
