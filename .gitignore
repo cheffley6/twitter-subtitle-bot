@@ -3,3 +3,4 @@ config/gcp_credentials.json
 twitter_video.mp4
 twitter_audio.flac
 venv
+venv8
