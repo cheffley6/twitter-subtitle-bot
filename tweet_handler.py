@@ -70,6 +70,7 @@ def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_B
         sample_rate_hertz=44100,
         audio_channel_count=1,
         language_code="en-US",
+        model="video",
     )
 
     operation = client.long_running_recognize(config=config, audio=audio)
