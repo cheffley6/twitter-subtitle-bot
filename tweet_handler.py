@@ -7,11 +7,22 @@ from google.cloud import storage, speech
 import ffmpeg
 import librosa
 import soundfile as sf
+import os
 
 
 twitter = Twython(
     twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET,
     twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
+
+
+
+def handle_m3u8(video_url):
+
+        command = "ffmpeg -i {} -bsf:a aac_adtstoasc -vcodec copy -c copy -crf 50 {} -y"
+        print('executing: ')
+        print(command.format(video_url, misc.LATEST_VIDEO_NAME))
+        os.system(command.format(video_url, misc.LATEST_VIDEO_NAME))
+
 
 def download_video(id):
     tweet = twitter.show_status(id=id, tweet_mode="extended")
@@ -21,11 +32,17 @@ def download_video(id):
     video_url = None
     try:
         video_url = tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
+        print("Downloading " + video_url)
+        if ".m3u8" in video_url:
+            print("got a m3u8")
+            handle_m3u8(video_url)
+        else:
+            urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
     except:
         raise Exception("Couldn't find video.")
-    print("Downloading " + video_url)
+    
 
-    urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
+    
 
 # writes video's audio to LATEST_AUDIO_NAME
 def write_video_to_audio_file():
@@ -91,7 +108,6 @@ def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_B
         # The first alternative is the most likely one for this portion.
         print("result: ", result)
         print("Confidence: {}".format(result.alternatives[0].confidence))
-        # input()
         transcription += result.alternatives[0].transcript
     
     return transcription
@@ -101,6 +117,7 @@ def process_one_video(tweet_id, mention_id):
         download_video(tweet_id)
     except:
         reply_to_tweet("Sorry, we couldn't find a video.", mention_id)
+        return
     write_video_to_audio_file()
     upload_blob()
     text = transcribe_gcs()
