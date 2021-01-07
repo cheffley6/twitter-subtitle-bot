@@ -107,7 +107,6 @@ def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_B
         # The first alternative is the most likely one for this portion.
         print("result: ", result)
         print("Confidence: {}".format(result.alternatives[0].confidence))
-        # input()
         transcription += result.alternatives[0].transcript
     
     return transcription
@@ -117,6 +116,7 @@ def process_one_video(tweet_id, mention_id):
         download_video(tweet_id)
     except:
         reply_to_tweet("Sorry, we couldn't find a video.", mention_id)
+        return
     write_video_to_audio_file()
     upload_blob()
     text = transcribe_gcs()
