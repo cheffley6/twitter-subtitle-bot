@@ -18,7 +18,12 @@ def download_video(id):
 
     # problem: twitter doesn't allow you to fetch the raw video for some tweets
     # pprint(tweet, open("checkmeout3.txt", "w"))
-    video_url = tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
+    video_url = None
+    try:
+        video_url = tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
+    except:
+        raise Exception("Couldn't find video.")
+    print("Downloading " + video_url)
 
     urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
 
@@ -70,6 +75,7 @@ def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_B
         sample_rate_hertz=44100,
         audio_channel_count=1,
         language_code="en-US",
+        model="video"
     )
 
     operation = client.long_running_recognize(config=config, audio=audio)
@@ -90,7 +96,10 @@ def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_B
     return transcription
 
 def process_one_video(tweet_id, mention_id):
-    download_video(tweet_id)
+    try:
+        download_video(tweet_id)
+    except:
+        reply_to_tweet("Sorry, we couldn't find a video.", mention_id)
     write_video_to_audio_file()
     upload_blob()
     text = transcribe_gcs()

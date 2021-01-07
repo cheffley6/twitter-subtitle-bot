@@ -9,9 +9,10 @@ from tweet_handler import *
 # StreamListener class inherits from tweepy.StreamListener and overrides on_status/on_error methods.
 class StreamListener(tweepy.StreamListener):
     def on_status(self, status):
-        print(status.id_str)
         # if "retweeted_status" attribute exists, flag this tweet as a retweet.
         is_retweet = hasattr(status, "retweeted_status")
+        if is_retweet:
+            return
 
         text = None
         # check if text has been truncated
@@ -25,8 +26,6 @@ class StreamListener(tweepy.StreamListener):
         
         tweet_id = status.in_reply_to_status_id
         mention_id = status.id
-
-        print(tweet_id)
 
         process_one_video(tweet_id, mention_id)
 
