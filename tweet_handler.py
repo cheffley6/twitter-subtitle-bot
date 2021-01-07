@@ -78,7 +78,7 @@ def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_B
         # The first alternative is the most likely one for this portion.
         print("result: ", result)
         print("Confidence: {}".format(result.alternatives[0].confidence))
-        input()
+        # input()
         transcription += result.alternatives[0].transcript
     
     return transcription
