@@ -1,4 +1,5 @@
 import tweepy
+import sys
 from pprint import pprint
 
 from config import twitter_credentials
@@ -20,14 +21,12 @@ class StreamListener(tweepy.StreamListener):
             text = status.extended_tweet["full_text"]
         else:
             text = status.text
-
-        if status.in_reply_to_status_id == None:
-            return "Error: Not in reply to anything"
         
         tweet_id = status.in_reply_to_status_id
+        author = "@" + status.user.screen_name
         mention_id = status.id
 
-        process_one_video(tweet_id, mention_id)
+        process_one_video(tweet_id, mention_id, author)
 
     def on_error(self, status_code):
         print("Encountered streaming error (", status_code, ")")

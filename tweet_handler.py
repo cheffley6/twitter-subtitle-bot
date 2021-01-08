@@ -10,18 +10,18 @@ import librosa
 import soundfile as sf
 import ffmpeg
 import os
-
+import datetime
 
 twitter = Twython(
     twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET,
     twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
 
 def annotate(clip, txt, back_color='black', txt_color='white', fontsize=None, font='Helvetica-Bold'):
-
+    print("txt: ", txt)
     if fontsize == None:
-        fontsize = int(clip.size[0] / 15)
+        fontsize = int(clip.size[0] / 20)
     """ Writes a text at the bottom of the clip. """
-    txtclip = editor.TextClip(txt, fontsize=fontsize, size=(clip.size[0], None), font=font, color=txt_color, stroke_color="black", method="caption", align="center")
+    txtclip = editor.TextClip(txt, fontsize=fontsize, size=(clip.size[0], clip.size[1]), font=font, color=txt_color, stroke_color="black", method="caption", align="center")
 
     cvc = editor.CompositeVideoClip([clip, txtclip.set_pos(('center', 'bottom'))])
     return cvc.set_duration(clip.duration)
@@ -30,10 +30,16 @@ def annotate(clip, txt, back_color='black', txt_color='white', fontsize=None, fo
 
 def generate_captioned_video(transcriptions, video_path=misc.LATEST_VIDEO_NAME):
     video = editor.VideoFileClip(video_path)
-    annotated_clips = [annotate(video.subclip(t.get_start_time(), t.get_end_time()), t.get_text()) for t in transcriptions]
+    annotated_clips = []
+    for t in transcriptions:
+        print(t.get_start_time(), t.get_end_time(), VIDEO_LENGTH)
+        annotated_clip = annotate(video.subclip(t.get_start_time().total_seconds(), t.get_end_time().total_seconds()), t.get_text())
+        annotated_clips.append(annotated_clip)
     final_clip = editor.concatenate_videoclips(annotated_clips)
-    # final_clip = final_clip.set_audio(editor.AudioFileClip(misc.LATEST_AUDIO_NAME))
     final_clip.write_videofile("annotated_video.mp4")
+    os.system("ffmpeg -y -i {} -i {} -c:v copy -map 0:v:0 -map 1:a:0 final_video.mp4".format("annotated_video.mp4", "twitter_audio.flac"))
+
+    
     
     
 
@@ -44,6 +50,7 @@ def handle_m3u8(video_url):
         print(command.format(video_url, misc.LATEST_VIDEO_NAME))
         os.system(command.format(video_url, misc.LATEST_VIDEO_NAME))
 
+VIDEO_LENGTH = 0.0
 
 def download_video(id):
     tweet = twitter.show_status(id=id, tweet_mode="extended")
@@ -60,6 +67,9 @@ def download_video(id):
             urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
     except:
         raise Exception("Couldn't find video.")
+
+    global VIDEO_LENGTH
+    VIDEO_LENGTH = datetime.timedelta(seconds=editor.VideoFileClip(misc.LATEST_VIDEO_NAME).duration)
     
 
     
@@ -77,7 +87,15 @@ def write_video_to_audio_file():
     sf.write(misc.LATEST_AUDIO_NAME, y, misc.TARGET_SAMPLE_RATE, format='flac')
 
 
-def reply_to_tweet(text, tweet_id):
+def reply_to_tweet(text, tweet_id, author, use_video=False):
+    if use_video:
+        video = open('final_video.mp4', 'rb')
+        response = twitter.upload_video(media=video, media_type='video/mp4')
+        twitter.update_status(status="Transcribed video for {}.".format(author), media_ids=[response['media_id']], in_reply_to_status_id=tweet_id)
+        # twitter.update_status()
+        print("Reply sent.")
+        return
+
     while len(text) > 0:
         # convert into multiple tweets
         response = twitter.update_status(status=text[:280], in_reply_to_status_id=tweet_id)
@@ -102,7 +120,7 @@ def upload_blob(bucket_name=misc.BUCKET_NAME, source_file_name=misc.LATEST_AUDIO
     )
 
 
-def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_BLOB_NAME):
+def transcribe_gcs(author=None, gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_BLOB_NAME):
     '''Asynchronously transcribes the audio file specified by the gcs_uri.'''
 
     client = speech.SpeechClient()
@@ -124,43 +142,65 @@ def transcribe_gcs(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_B
 
     # Each result is for a consecutive portion of the audio. Iterate through
     # them to get the transcripts for the entire audio file.
-    raw_transcription = "Transcript: "
+    raw_transcription = "{} Video too long to re-create. Transcript: ".format(author)
 
     transcriptions = []
 
-    tracker = 0
     first_time = True
-    for result in response.results:
+    prev = datetime.timedelta(0)
+    for index, result in enumerate(response.results):
+        words = result.alternatives[0].words
         # The first alternative is the most likely one for this portion.
         print("Confidence: {}".format(result.alternatives[0].confidence))
-        earliest, latest = 1000000000.0, -1.0
-        for word in result.alternatives[0].words:
-            if first_time:
-                earliest = min(earliest, word.start_time.seconds + word.start_time.microseconds / 1000000000)
-            latest = max(latest, word.end_time.seconds + word.end_time.microseconds / 1000000000)
         raw_transcription += result.alternatives[0].transcript
         
         
-        if first_time:
-            transcriptions.append(Transcription(result.alternatives[0].transcript, earliest, latest))
-            first_time = False
+        if index == len(response.results) - 1:
+            transcriptions.append(Transcription(result.alternatives[0].transcript, prev, VIDEO_LENGTH))
         else:
-            transcriptions.append(Transcription(result.alternatives[0].transcript, tracker, latest))
-        tracker = latest
+            if prev == None:
+                if len(words) != 0:
+                    prev = words[0].start_time
+                    transcriptions.append(
+                        Transcription(
+                        result.alternatives[0].transcript,
+                        prev,
+                        words[-1].end_time))
+                else:
+                    raise Exception("Mess.")
+            else:
+                transcriptions.append(
+                    Transcription(
+                        result.alternatives[0].transcript,
+                        prev,
+                        words[-1].end_time))
+        if len(words) > 0:
+            prev = words[-1].end_time
+        else:
+            if index == len(response.results) - 1:
+                continue
+            else:
+                prev = None
+
+    print("Transcriptions:")
+    for t in transcriptions:
+        print(t)
     
-    generate_captioned_video(transcriptions)
+    
 
-    return raw_transcription
+    return (transcriptions, raw_transcription)
 
-def process_one_video(tweet_id, mention_id):
+def process_one_video(tweet_id=None, mention_id=None, author=None):
     try:
         download_video(tweet_id)
     except:
-        reply_to_tweet("Sorry, we couldn't find a video.", mention_id)
+        reply_to_tweet("Sorry, we couldn't find a video.", mention_id, author)
         return
     write_video_to_audio_file()
     upload_blob()
-    text = transcribe_gcs()
-    reply_to_tweet(text, mention_id)
-
-process_one_video(None, None)
+    transcriptions, text = transcribe_gcs(author)
+    if VIDEO_LENGTH.total_seconds() >= 30:
+        reply_to_tweet(text, mention_id, author, False)
+    else:
+        generate_captioned_video(transcriptions)
+        reply_to_tweet(text, mention_id, author, True)
