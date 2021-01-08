@@ -21,7 +21,7 @@ def annotate(clip, txt, back_color='black', txt_color='white', fontsize=None, fo
     if fontsize == None:
         fontsize = int(clip.size[0] / 20)
     """ Writes a text at the bottom of the clip. """
-    txtclip = editor.TextClip(txt, fontsize=fontsize, size=(clip.size[0], clip.size[1]), font=font, color=txt_color, stroke_color="black", method="caption", align="center")
+    txtclip = editor.TextClip(txt, fontsize=fontsize, size=(clip.size[0], clip.size[1]), font=font, color=txt_color, stroke_color="black", method="caption", align="south")
 
     cvc = editor.CompositeVideoClip([clip, txtclip.set_pos(('center', 'bottom'))])
     return cvc.set_duration(clip.duration)
