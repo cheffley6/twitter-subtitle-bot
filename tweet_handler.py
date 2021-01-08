@@ -192,6 +192,7 @@ def transcribe_gcs(author=None, gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.
 
 def process_one_video(tweet_id=None, mention_id=None, author=None):
     if author.lower() == "@videosubtitle":
+        print("Can't transcribe video for self.")
         return
     try:
         download_video(tweet_id)
