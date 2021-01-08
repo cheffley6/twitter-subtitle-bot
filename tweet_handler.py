@@ -191,6 +191,8 @@ def transcribe_gcs(author=None, gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.
     return (transcriptions, raw_transcription)
 
 def process_one_video(tweet_id=None, mention_id=None, author=None):
+    if author.lower() == "@videosubtitle":
+        return
     try:
         download_video(tweet_id)
     except:
