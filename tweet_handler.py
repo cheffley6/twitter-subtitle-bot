@@ -15,12 +15,12 @@ twitter = Twython(
     twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET,
     twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
 
-def annotate(clip, txt, txt_color='black', fontsize=None, font='Xolonium-Bold'):
+def annotate(clip, txt, back_color='black', txt_color='white', fontsize=None, font='Xolonium-Bold'):
 
-    # if fontsize == None:
-    #     fontsize = int(clip.size[0] / 15)
+    if fontsize == None:
+        fontsize = 12 #int(clip.size[0] / 15)
     """ Writes a text at the bottom of the clip. """
-    txtclip = editor.TextClip(txt, fontsize=fontsize, size=(clip.size[0], int(clip.size[1] / 5)), font=font, color=txt_color, method="label")
+    txtclip = editor.TextClip(txt, fontsize=12, size=(clip.size[0], None), font=font, bg_color=back_color, color=txt_color, method="caption", align="center")
 
     cvc = editor.CompositeVideoClip([clip, txtclip.set_pos(('center', 'bottom'))])
     return cvc.set_duration(clip.duration)
