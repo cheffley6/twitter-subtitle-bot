@@ -197,7 +197,7 @@ def process_one_video(tweet_id=None, mention_id=None, author=None):
     try:
         download_video(tweet_id)
     except:
-        reply_to_tweet("Sorry, we couldn't find a video.", mention_id, author)
+        reply_to_tweet(author + " Sorry, we couldn't find a video.", mention_id, author)
         return
     write_video_to_audio_file()
     upload_blob()
