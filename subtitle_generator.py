@@ -1,7 +1,7 @@
 import srt
 import datetime
 
-def generate_subtitles(response, bin_size=3):
+def generate_subtitles(response, bin_size=3, output_path="subtitles.srt"):
     """We define a bin of time period to display the words in sync with audio. 
     Here, bin_size = 3 means each bin is of 3 secs. 
     All the words in the interval of 3 secs in result will be grouped togather."""
@@ -13,7 +13,7 @@ def generate_subtitles(response, bin_size=3):
             if result.alternatives[0].words[0].start_time.seconds:
                 # bin start -> for first word of result
                 start_sec = result.alternatives[0].words[0].start_time.seconds 
-                start_microsec = result.alternatives[0].words[0].start_time.nanos * 0.001
+                start_microsec = result.alternatives[0].words[0].start_time.microseconds
             else:
                 # bin start -> For First word of response
                 start_sec = 0
@@ -22,7 +22,7 @@ def generate_subtitles(response, bin_size=3):
             
             # for last word of result
             last_word_end_sec = result.alternatives[0].words[-1].end_time.seconds
-            last_word_end_microsec = result.alternatives[0].words[-1].end_time.nanos * 0.001
+            last_word_end_microsec = result.alternatives[0].words[-1].end_time.microseconds
             
             # bin transcript
             transcript = result.alternatives[0].words[0].word
@@ -33,15 +33,15 @@ def generate_subtitles(response, bin_size=3):
                 try:
                     word = result.alternatives[0].words[i + 1].word
                     word_start_sec = result.alternatives[0].words[i + 1].start_time.seconds
-                    word_start_microsec = result.alternatives[0].words[i + 1].start_time.nanos * 0.001 # 0.001 to convert nana -> micro
+                    word_start_microsec = result.alternatives[0].words[i + 1].start_time.microseconds
                     word_end_sec = result.alternatives[0].words[i + 1].end_time.seconds
-                    word_end_microsec = result.alternatives[0].words[i + 1].end_time.nanos * 0.001
+                    word_end_microsec = result.alternatives[0].words[i + 1].end_time.microseconds
 
                     if word_end_sec < end_sec:
                         transcript = transcript + " " + word
                     else:
                         previous_word_end_sec = result.alternatives[0].words[i].end_time.seconds
-                        previous_word_end_microsec = result.alternatives[0].words[i].end_time.nanos * 0.001
+                        previous_word_end_microsec = result.alternatives[0].words[i].end_time.microseconds
                         
                         # append bin transcript
                         transcriptions.append(srt.Subtitle(index, datetime.timedelta(0, start_sec, start_microsec), datetime.timedelta(0, previous_word_end_sec, previous_word_end_microsec), transcript))
@@ -63,4 +63,9 @@ def generate_subtitles(response, bin_size=3):
     
     # turn transcription list into subtitles
     subtitles = srt.compose(transcriptions)
-    return subtitles
+    
+    # write subtitles into path
+    write_file = open(output_path, "w")
+    success = write_file.write(subtitles)
+    assert type(success) == int
+    return True
