@@ -1,5 +1,10 @@
+from datetime import timedelta
+
 class Transcription:
     def __init__(self, text, start_time, end_time):
+        assert type(text) == str
+        assert type(start_time) == timedelta
+        assert type(end_time) == timedelta
         self.text = text
         self.start_time = start_time
         self.end_time = end_time

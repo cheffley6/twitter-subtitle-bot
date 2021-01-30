@@ -5,9 +5,9 @@ from twython import Twython
 from google.cloud import storage, speech
 
 from Transcription import Transcription
-from moviepy import editor
 import librosa
 import soundfile as sf
+from video_handler import *
 import ffmpeg
 import os
 import datetime
