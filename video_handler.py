@@ -22,7 +22,7 @@ def annotate(clip, txt, back_color='black', txt_color='white', fontsize=None, fo
 
 # returns:
 # the output_path if the video was annotated, else an exception is raised
-def generate_captioned_video(transcriptions, video_path=misc.LATEST_VIDEO_NAME, audio_path=misc.LATEST_AUDIO_NAME, output_path=None):
+def generate_captioned_video(transcriptions, video_path=misc.LATEST_VIDEO_NAME, audio_path=misc.LATEST_AUDIO_NAME, output_path="final_video.mp4"):
     video = editor.VideoFileClip(video_path)
     annotated_clips = []
     for t in transcriptions:
@@ -31,7 +31,7 @@ def generate_captioned_video(transcriptions, video_path=misc.LATEST_VIDEO_NAME, 
         annotated_clips.append(annotated_clip)
     final_clip = editor.concatenate_videoclips(annotated_clips)
     final_clip.write_videofile("annotated_video.mp4")
-    out = os.system("ffmeg -y -i {} -i {} -c:v copy -map 0:v:0 -map 1:a:0 final_video.mp4".format("annotated_video.mp4", audio_path))
+    out = os.system("ffmpeg -y -i {} -i {} -c:v copy -map 0:v:0 -map 1:a:0 {}".format("annotated_video.mp4", audio_path, output_path))
     if out == 0:
         return output_path
     else:
