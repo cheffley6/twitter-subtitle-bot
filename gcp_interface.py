@@ -24,7 +24,7 @@ def upload_blob(bucket_name=misc.BUCKET_NAME, source_file_name=misc.LATEST_AUDIO
 
 
 # given a GCS URI, return GCP's Speech-to-Text repsonse of the audio data at the URI
-def transcribe_gcs(author=None, gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_BLOB_NAME):
+def get_gcs_transcription(gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_BLOB_NAME):
     '''Asynchronously transcribes the audio file specified by the gcs_uri.'''
 
     client = speech.SpeechClient(
@@ -45,51 +45,5 @@ def transcribe_gcs(author=None, gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.
     operation = client.long_running_recognize(config=config, audio=audio)
 
     print("Waiting for operation to complete...")
-    response = operation.result(timeout=90)
-    
-
-    # Each result is for a consecutive portion of the audio. Iterate through
-    # them to get the transcripts for the entire audio file.
-    raw_transcription = "{} Video too long to re-create. Transcript: ".format(author)
-
-    transcriptions = []
-
-    first_time = True
-    prev = datetime.timedelta(0)
-    for index, result in enumerate(response.results):
-        words = result.alternatives[0].words
-        # The first alternative is the most likely one for this portion.
-        print("Confidence: {}".format(result.alternatives[0].confidence))
-        raw_transcription += result.alternatives[0].transcript
+    return operation.result(timeout=90)
         
-        
-        if index == len(response.results) - 1:
-            transcriptions.append(Transcription(result.alternatives[0].transcript, prev, VIDEO_LENGTH))
-        else:
-            if prev == None:
-                if len(words) != 0:
-                    prev = words[0].start_time
-                    transcriptions.append(
-                        Transcription(
-                        result.alternatives[0].transcript,
-                        prev,
-                        words[-1].end_time))
-                else:
-                    raise Exception("Mess.")
-            else:
-                transcriptions.append(
-                    Transcription(
-                        result.alternatives[0].transcript,
-                        prev,
-                        words[-1].end_time))
-        if len(words) > 0:
-            prev = words[-1].end_time
-        else:
-            if index == len(response.results) - 1:
-                continue
-            else:
-                prev = None
-    
-    
-    return response
-    # return (transcriptions, raw_transcription)

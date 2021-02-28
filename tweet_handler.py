@@ -1,17 +1,20 @@
-from config import misc, twitter_credentials
-from urllib.request import urlretrieve
-from pprint import pprint
-from twython import Twython
-
-
-from Transcription import Transcription
-import librosa
-import soundfile as sf
-from video_handler import *
-from gcp_interface import *
-import ffmpeg
 import os
 import datetime
+from pprint import pprint
+
+from urllib.request import urlretrieve
+from twython import Twython
+from librosa import load, resample
+import soundfile as sf
+import ffmpeg
+
+from config import misc, twitter_credentials
+from video_handler import *
+from gcp_interface import *
+from subtitle_generator import generate_subtitles
+
+
+
 
 twitter = Twython(
     twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET,
@@ -60,12 +63,12 @@ def write_video_to_audio_file():
     stream = ffmpeg.output(audio, misc.LATEST_AUDIO_NAME, ac=1, sample_rate=44100).overwrite_output()
     ffmpeg.run(stream)
 
-    y, s = librosa.load(misc.LATEST_AUDIO_NAME)
-    y = librosa.resample(y, s, misc.TARGET_SAMPLE_RATE)
+    y, s = load(misc.LATEST_AUDIO_NAME)
+    y = resample(y, s, misc.TARGET_SAMPLE_RATE)
     sf.write(misc.LATEST_AUDIO_NAME, y, misc.TARGET_SAMPLE_RATE, format='flac')
 
 
-def reply_to_tweet(text, tweet_id, author, use_video=False):
+def reply_to_tweet(tweet_id, author, use_video=False, text=None):
     if use_video:
         video = open('final_video.mp4', 'rb')
         response = twitter.upload_video(media=video, media_type='video/mp4')
@@ -82,19 +85,27 @@ def reply_to_tweet(text, tweet_id, author, use_video=False):
     print("Reply sent.")
 
 def process_one_video(tweet_id=None, mention_id=None, author=None):
+    """For now, replies with stacked tweets for videos longer than 30 seconds,
+    and replies with uploaded, captioned video for videos shorter than 30."""
+
     if author.lower() == "@videosubtitle":
         print("Can't transcribe video for self.")
         return
     try:
         download_video(tweet_id)
-    except:
+    except Exception as e:
+        print(e)
         reply_to_tweet(author + " Sorry, we couldn't find a video.", mention_id, author)
         return
+
     write_video_to_audio_file()
     upload_blob()
-    transcriptions, text = transcribe_gcs(author)
+    stt_response = get_gcs_transcription()
+
+    text = generate_subtitles(stt_response)["text"]
+
     if VIDEO_LENGTH.total_seconds() >= 30:
-        reply_to_tweet(text, mention_id, author, False)
+        reply_to_tweet(mention_id, author, False, text)
     else:
-        generate_captioned_video(transcriptions)
-        reply_to_tweet(text, mention_id, author, True)
+        generate_captioned_video()
+        reply_to_tweet(mention_id, author, True)

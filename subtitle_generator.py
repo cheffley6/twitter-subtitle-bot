@@ -1,11 +1,12 @@
 import srt
 import datetime
 
-def generate_subtitles(response, bin_size=3, output_path="subtitles.srt"):
+def generate_subtitles(response, bin_size=3, output_path="subtitles.srt", output_text_path="subtitles.txt"):
     """We define a bin of time period to display the words in sync with audio. 
     Here, bin_size = 3 means each bin is of 3 secs. 
     All the words in the interval of 3 secs in result will be grouped togather."""
     transcriptions = []
+    transcriptions_text = ""
     index = 0
  
     for result in response.results:
@@ -35,7 +36,6 @@ def generate_subtitles(response, bin_size=3, output_path="subtitles.srt"):
                     word_start_sec = result.alternatives[0].words[i + 1].start_time.seconds
                     word_start_microsec = result.alternatives[0].words[i + 1].start_time.microseconds
                     word_end_sec = result.alternatives[0].words[i + 1].end_time.seconds
-                    word_end_microsec = result.alternatives[0].words[i + 1].end_time.microseconds
 
                     if word_end_sec < end_sec:
                         transcript = transcript + " " + word
@@ -57,15 +57,18 @@ def generate_subtitles(response, bin_size=3, output_path="subtitles.srt"):
                     pass
             # append transcript of last transcript in bin
             transcriptions.append(srt.Subtitle(index, datetime.timedelta(0, start_sec, start_microsec), datetime.timedelta(0, last_word_end_sec, last_word_end_microsec), transcript))
+            transcriptions_text += transcript
             index += 1
         except IndexError:
             pass
     
     # turn transcription list into subtitles
-    subtitles = srt.compose(transcriptions)
-    
+    subtitles = srt.compose(transcriptions)    
     # write subtitles into path
     write_file = open(output_path, "w")
     success = write_file.write(subtitles)
     assert type(success) == int
-    return True
+    return {
+        "success": True,
+        "text": transcriptions_text
+    }
