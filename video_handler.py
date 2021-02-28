@@ -15,14 +15,13 @@ def annotate(clip, txt, back_color='black', txt_color='white', fontsize=None, fo
 
 
 # given:
-# transcriptions - a list of Transcription objects
 # video_path - the path of the video to caption
 # audio_path - the path of the audio to place onto the final video
 # output_path - the path of the final video to return
 
 # returns:
 # the output_path if the video was annotated, else an exception is raised
-def generate_captioned_video(transcriptions, video_path=misc.LATEST_VIDEO_NAME, audio_path=misc.LATEST_AUDIO_NAME, output_path="final_video.mp4"):
+def generate_captioned_video(transcription_filename="subtitles.srt", video_path=misc.LATEST_VIDEO_NAME, audio_path=misc.LATEST_AUDIO_NAME, output_path="final_video.mp4"):
     video = editor.VideoFileClip(video_path)
     annotated_clips = []
     for t in transcriptions:
@@ -38,3 +37,5 @@ def generate_captioned_video(transcriptions, video_path=misc.LATEST_VIDEO_NAME, 
         raise Exception("Error encoding the video.")
 
 
+if __name__ == "main":
+    print("Testing video_handler")
