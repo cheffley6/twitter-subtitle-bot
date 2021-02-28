@@ -97,7 +97,12 @@ def process_one_video(tweet_id=None, mention_id=None, author=None):
         download_video(tweet_id)
     except Exception as e:
         print(e)
-        reply_to_tweet(author + " Sorry, we couldn't find a video.", mention_id, author)
+        reply_to_tweet(mention_id, author, text=author + " Sorry, we couldn't find a video.")
+        return
+    
+    # For now, don't process a tweet longer than 3 minutes
+    if VIDEO_LENGTH.total_seconds() >= 180:
+        reply_to_tweet(mention_id, author, text=author + " Sorry, this video is too long to transcribe.")
         return
 
     write_video_to_audio_file()
