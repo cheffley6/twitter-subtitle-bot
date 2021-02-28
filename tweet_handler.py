@@ -1,45 +1,26 @@
-from config import misc, twitter_credentials
-from urllib.request import urlretrieve
-from pprint import pprint
-from twython import Twython
-from google.cloud import storage, speech
-
-from Transcription import Transcription
-from moviepy import editor
-import librosa
-import soundfile as sf
-import ffmpeg
 import os
 import datetime
+from pprint import pprint
+
+from urllib.request import urlretrieve
+from twython import Twython
+from librosa import load, resample
+import soundfile as sf
+import ffmpeg
+
+from config import misc, twitter_credentials
+from video_handler import *
+from gcp_interface import *
+from subtitle_generator import generate_subtitles
+
+
+
 
 twitter = Twython(
     twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET,
     twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
 
-def annotate(clip, txt, back_color='black', txt_color='white', fontsize=None, font='Helvetica-Bold'):
-    print("txt: ", txt)
-    if fontsize == None:
-        fontsize = int(clip.size[0] / 20)
-    """ Writes a text at the bottom of the clip. """
-    txtclip = editor.TextClip(txt, fontsize=fontsize, size=(clip.size[0], clip.size[1]), font=font, color=txt_color, stroke_color="black", method="caption", align="south")
 
-    cvc = editor.CompositeVideoClip([clip, txtclip.set_pos(('center', 'bottom'))])
-    return cvc.set_duration(clip.duration)
-
-
-
-def generate_captioned_video(transcriptions, video_path=misc.LATEST_VIDEO_NAME):
-    video = editor.VideoFileClip(video_path)
-    annotated_clips = []
-    for t in transcriptions:
-        print(t.get_start_time(), t.get_end_time(), VIDEO_LENGTH)
-        annotated_clip = annotate(video.subclip(t.get_start_time().total_seconds(), t.get_end_time().total_seconds()), t.get_text())
-        annotated_clips.append(annotated_clip)
-    final_clip = editor.concatenate_videoclips(annotated_clips)
-    final_clip.write_videofile("annotated_video.mp4")
-    os.system("ffmpeg -y -i {} -i {} -c:v copy -map 0:v:0 -map 1:a:0 final_video.mp4".format("annotated_video.mp4", "twitter_audio.flac"))
-
-    
     
     
 
@@ -82,12 +63,12 @@ def write_video_to_audio_file():
     stream = ffmpeg.output(audio, misc.LATEST_AUDIO_NAME, ac=1, sample_rate=44100).overwrite_output()
     ffmpeg.run(stream)
 
-    y, s = librosa.load(misc.LATEST_AUDIO_NAME)
-    y = librosa.resample(y, s, misc.TARGET_SAMPLE_RATE)
+    y, s = load(misc.LATEST_AUDIO_NAME)
+    y = resample(y, s, misc.TARGET_SAMPLE_RATE)
     sf.write(misc.LATEST_AUDIO_NAME, y, misc.TARGET_SAMPLE_RATE, format='flac')
 
 
-def reply_to_tweet(text, tweet_id, author, use_video=False):
+def reply_to_tweet(tweet_id, author, use_video=False, text=None):
     if use_video:
         video = open('final_video.mp4', 'rb')
         response = twitter.upload_video(media=video, media_type='video/mp4')
@@ -103,107 +84,28 @@ def reply_to_tweet(text, tweet_id, author, use_video=False):
         text = text[280:]
     print("Reply sent.")
 
-def upload_blob(bucket_name=misc.BUCKET_NAME, source_file_name=misc.LATEST_AUDIO_NAME, destination_blob_name=misc.DESTINATION_BLOB_NAME):
-    '''Uploads a file to the bucket.'''
-
-
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-
-    blob.upload_from_filename(source_file_name)
-
-    print(
-        "File {} uploaded to {}.".format(
-            source_file_name, destination_blob_name
-        )
-    )
-
-
-def transcribe_gcs(author=None, gcs_uri="gs://" + misc.BUCKET_NAME + "/" + misc.DESTINATION_BLOB_NAME):
-    '''Asynchronously transcribes the audio file specified by the gcs_uri.'''
-
-    client = speech.SpeechClient()
-
-    audio = speech.RecognitionAudio(uri=gcs_uri)
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.FLAC,
-        sample_rate_hertz=44100,
-        audio_channel_count=1,
-        language_code="en-US",
-        enable_word_time_offsets=True,
-        model="video"
-    )
-
-    operation = client.long_running_recognize(config=config, audio=audio)
-
-    print("Waiting for operation to complete...")
-    response = operation.result(timeout=90)
-
-    # Each result is for a consecutive portion of the audio. Iterate through
-    # them to get the transcripts for the entire audio file.
-    raw_transcription = "{} Video too long to re-create. Transcript: ".format(author)
-
-    transcriptions = []
-
-    first_time = True
-    prev = datetime.timedelta(0)
-    for index, result in enumerate(response.results):
-        words = result.alternatives[0].words
-        # The first alternative is the most likely one for this portion.
-        print("Confidence: {}".format(result.alternatives[0].confidence))
-        raw_transcription += result.alternatives[0].transcript
-        
-        
-        if index == len(response.results) - 1:
-            transcriptions.append(Transcription(result.alternatives[0].transcript, prev, VIDEO_LENGTH))
-        else:
-            if prev == None:
-                if len(words) != 0:
-                    prev = words[0].start_time
-                    transcriptions.append(
-                        Transcription(
-                        result.alternatives[0].transcript,
-                        prev,
-                        words[-1].end_time))
-                else:
-                    raise Exception("Mess.")
-            else:
-                transcriptions.append(
-                    Transcription(
-                        result.alternatives[0].transcript,
-                        prev,
-                        words[-1].end_time))
-        if len(words) > 0:
-            prev = words[-1].end_time
-        else:
-            if index == len(response.results) - 1:
-                continue
-            else:
-                prev = None
-
-    print("Transcriptions:")
-    for t in transcriptions:
-        print(t)
-    
-    
-
-    return (transcriptions, raw_transcription)
-
 def process_one_video(tweet_id=None, mention_id=None, author=None):
+    """For now, replies with stacked tweets for videos longer than 30 seconds,
+    and replies with uploaded, captioned video for videos shorter than 30."""
+
     if author.lower() == "@videosubtitle":
         print("Can't transcribe video for self.")
         return
     try:
         download_video(tweet_id)
-    except:
+    except Exception as e:
+        print(e)
         reply_to_tweet(author + " Sorry, we couldn't find a video.", mention_id, author)
         return
+
     write_video_to_audio_file()
     upload_blob()
-    transcriptions, text = transcribe_gcs(author)
+    stt_response = get_gcs_transcription()
+
+    text = generate_subtitles(stt_response)["text"]
+
     if VIDEO_LENGTH.total_seconds() >= 30:
-        reply_to_tweet(text, mention_id, author, False)
+        reply_to_tweet(mention_id, author, False, text)
     else:
-        generate_captioned_video(transcriptions)
-        reply_to_tweet(text, mention_id, author, True)
+        generate_captioned_video()
+        reply_to_tweet(mention_id, author, True)
