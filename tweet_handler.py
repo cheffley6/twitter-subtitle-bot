@@ -70,18 +70,20 @@ def write_video_to_audio_file():
 
 def reply_to_tweet(tweet_id, author, use_video=False, text=None):
     if use_video:
-        video = open('final_video.mp4', 'rb')
+        video = open('data/final_video.mp4', 'rb')
         response = twitter.upload_video(media=video, media_type='video/mp4')
         twitter.update_status(status="Transcribed video for {}.".format(author), media_ids=[response['media_id']], in_reply_to_status_id=tweet_id)
         # twitter.update_status()
         print("Reply sent.")
         return
+    else:
 
-    while len(text) > 0:
-        # convert into multiple tweets
-        response = twitter.update_status(status=text[:280], in_reply_to_status_id=tweet_id)
-        tweet_id = response['id']
-        text = text[280:]
+        while len(text) > 0:
+            # convert into multiple tweets
+            print(tweet_id)
+            response = twitter.update_status(status=text[:280], in_reply_to_status_id=tweet_id)
+            tweet_id = response['id']
+            text = text[280:]
     print("Reply sent.")
 
 def process_one_video(tweet_id=None, mention_id=None, author=None):
@@ -105,7 +107,7 @@ def process_one_video(tweet_id=None, mention_id=None, author=None):
     text = generate_subtitles(stt_response)["text"]
 
     if VIDEO_LENGTH.total_seconds() >= 30:
-        reply_to_tweet(mention_id, author, False, text)
+        reply_to_tweet(mention_id, author, False, author + " Video too long to upload. Transcription: " + text)
     else:
         generate_captioned_video()
         reply_to_tweet(mention_id, author, True)

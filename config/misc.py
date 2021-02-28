@@ -1,5 +1,5 @@
-LATEST_VIDEO_NAME = "twitter_video.mp4"
-LATEST_AUDIO_NAME = "twitter_audio.flac"
+LATEST_VIDEO_NAME = "data/twitter_video.mp4"
+LATEST_AUDIO_NAME = "data/twitter_audio.flac"
 
 TARGET_SAMPLE_RATE = 44100
 

@@ -1,8 +1,7 @@
 config/twitter_credentials.py
 config/gcp_credentials.json
-twitter_video.mp4
-twitter_audio.flac
+config/__pycache__
+__pycache__
+data
 venv
 venv8
-final_video.mp4
-annotated_video.mp4

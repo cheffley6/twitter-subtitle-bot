@@ -45,7 +45,8 @@ def generate_subtitles(response, bin_size=3, output_path="subtitles.srt", output
                         
                         # append bin transcript
                         transcriptions.append(srt.Subtitle(index, datetime.timedelta(0, start_sec, start_microsec), datetime.timedelta(0, previous_word_end_sec, previous_word_end_microsec), transcript))
-                        
+                        transcriptions_text += transcript + " "
+
                         # reset bin parameters
                         start_sec = word_start_sec
                         start_microsec = word_start_microsec
@@ -57,16 +58,22 @@ def generate_subtitles(response, bin_size=3, output_path="subtitles.srt", output
                     pass
             # append transcript of last transcript in bin
             transcriptions.append(srt.Subtitle(index, datetime.timedelta(0, start_sec, start_microsec), datetime.timedelta(0, last_word_end_sec, last_word_end_microsec), transcript))
-            transcriptions_text += transcript
+            transcriptions_text += transcript + " "
+
             index += 1
         except IndexError:
             pass
+        
     
     # turn transcription list into subtitles
     subtitles = srt.compose(transcriptions)    
     # write subtitles into path
     write_file = open(output_path, "w")
     success = write_file.write(subtitles)
+    
+    if transcriptions_text != "":
+        if transcriptions_text[-1] == " ":
+            transcriptions_text = transcriptions_text[:-1]
     assert type(success) == int
     return {
         "success": True,
