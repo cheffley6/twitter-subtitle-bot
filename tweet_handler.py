@@ -97,8 +97,9 @@ def reply_to_tweet(tweet_id, author, use_video=False, text=None):
     print("Reply sent.")
 
 def process_one_video(tweet_id=None, mention_id=None, author=None):
-    """For now, replies with stacked tweets for videos longer than 30 seconds,
-    and replies with uploaded, captioned video for videos shorter than 30."""
+    """For now, replies with stacked tweets for videos longer than 30 seconds
+    and less than 3 minutes, and replies with uploaded, captioned video for
+    videos shorter than 30 seconds."""
 
     if author.lower() == "@videosubtitle":
         print("Can't transcribe video for self.")
