@@ -1,5 +1,5 @@
 import os
-import datetime
+from datetime import timedelta, datetime
 from pprint import pprint
 
 from urllib.request import urlretrieve
@@ -12,6 +12,8 @@ from config import misc, twitter_credentials
 from video_handler import *
 from gcp_interface import *
 from subtitle_generator import generate_subtitles
+
+from mongo_interface import *
 
 
 
@@ -50,7 +52,7 @@ def download_video(id):
         raise Exception("Couldn't find video.")
 
     global VIDEO_LENGTH
-    VIDEO_LENGTH = datetime.timedelta(seconds=editor.VideoFileClip(misc.LATEST_VIDEO_NAME).duration)
+    VIDEO_LENGTH = timedelta(seconds=editor.VideoFileClip(misc.LATEST_VIDEO_NAME).duration)
     
 
     
@@ -72,18 +74,26 @@ def reply_to_tweet(tweet_id, author, use_video=False, text=None):
     if use_video:
         video = open('data/final_video.mp4', 'rb')
         response = twitter.upload_video(media=video, media_type='video/mp4')
-        twitter.update_status(status="Transcribed video for {}.".format(author), media_ids=[response['media_id']], in_reply_to_status_id=tweet_id)
-        # twitter.update_status()
+        response = twitter.update_status(status="Transcribed video for {}.".format(author), media_ids=[response['media_id']], in_reply_to_status_id=tweet_id)
+        
+        tweet = Tweet(tweet_id)
+        reply = Tweet(response['id'], datetime.now())
+        tweet.insert_into_mongo([reply])
+
         print("Reply sent.")
         return
     else:
-
+        tweet = Tweet(tweet_id)
+        replies = []
         while len(text) > 0:
             # convert into multiple tweets
             print(tweet_id)
             response = twitter.update_status(status=text[:280], in_reply_to_status_id=tweet_id)
             tweet_id = response['id']
             text = text[280:]
+            replies.append(tweet_id)
+        tweet.insert_into_mongo(replies)
+
     print("Reply sent.")
 
 def process_one_video(tweet_id=None, mention_id=None, author=None):

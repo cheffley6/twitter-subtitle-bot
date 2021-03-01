@@ -1,6 +1,6 @@
 from mongo_interface import *
 from datetime import datetime, timedelta
-from twython import Twython, exceptions.TwythonError
+from twython import Twython, exceptions
 
 from config import twitter_credentials
 
@@ -16,25 +16,33 @@ twitter = Twython(
 all_tweets = collection.find({})
 
 for tweet in all_tweets:
+    print(dir(tweet))
+    if "tweet_id" not in tweet:
+        collection.delete_one({"_id": tweet._id})
+    print(tweet)
 
     # this line is terrible, but as a note to my future self:
     # this is casting the mongoDB object of the tweet into 
     # the class version defined in mongo_interface
-    tweet = Tweet(tweet.tweet_id)
+    
     bot_tweets = []
-    for t in tweet.captioned_tweet_ids:
-        bot_tweets.append(Tweet(t.id))
+    for t in tweet['captioned_tweet_ids']:
+        bot_tweets.append(Tweet(t))
+
+    
 
     # remove tweets four weeks or older
-    if (datetime.now() - tweet.create_date).days >= 28:
+    if (datetime.now() - tweet['create_date']).days >= 28:
         for t in bot_tweets:
             twitter.destroy_status(id=t.id)
+        tweet = Tweet(tweet['tweet_id'])
         tweet.remove_from_mongo()
 
     # check if original tweet deleted. if so, delete bot's tweets
     try:
-        twitter.show_status(id=tweet.id)
+        twitter.show_status(id=tweet['tweet_id'])
     except exceptions.TwythonError:
         for t in bot_tweets:
             twitter.destroy_status(id=t.id)
+        tweet = Tweet(tweet['tweet_id'])
         tweet.remove_from_mongo()

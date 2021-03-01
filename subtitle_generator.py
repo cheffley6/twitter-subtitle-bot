@@ -1,7 +1,7 @@
 import srt
 import datetime
 
-def generate_subtitles(response, bin_size=3, output_path="subtitles.srt", output_text_path="subtitles.txt"):
+def generate_subtitles(response, bin_size=3, output_path="data/subtitles.srt", output_text_path="subtitles.txt"):
     """We define a bin of time period to display the words in sync with audio. 
     Here, bin_size = 3 means each bin is of 3 secs. 
     All the words in the interval of 3 secs in result will be grouped togather."""

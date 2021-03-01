@@ -2,7 +2,7 @@ from pymongo import MongoClient
 from datetime import datetime
 
 mongo_client = MongoClient('localhost', 27017)
-database = mongo_client.subtitlebot
+database = mongo_client.subtitle_bot
 collection = database.tweets
 
 
