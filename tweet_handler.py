@@ -120,6 +120,9 @@ def process_one_video(tweet_id=None, mention_id=None, author=None):
     stt_response = get_gcs_transcription()
 
     text = generate_subtitles(stt_response)["text"]
+    if os.stat("data/subtitles.srt").st_size == 0:
+        reply_to_tweet(mention_id, author, False, author + " Sorry, we weren't able to parse any words from this tweet.")
+        return
 
     if VIDEO_LENGTH.total_seconds() >= 30:
         reply_to_tweet(mention_id, author, False, author + " Video too long to upload. Transcription: " + text)
