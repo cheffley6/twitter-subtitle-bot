@@ -29,15 +29,6 @@ for tweet in all_tweets:
     for t in tweet['captioned_tweet_ids']:
         bot_tweets.append(Tweet(t))
 
-    
-
-    # remove tweets four weeks or older
-    if (datetime.now() - tweet['create_date']).days >= 28:
-        for t in bot_tweets:
-            twitter.destroy_status(id=t.id)
-        tweet = Tweet(tweet['tweet_id'])
-        tweet.remove_from_mongo()
-
     # check if original tweet deleted. if so, delete bot's tweets
     try:
         twitter.show_status(id=tweet['tweet_id'])

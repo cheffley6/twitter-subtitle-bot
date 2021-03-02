@@ -1,11 +1,10 @@
 # twitter-subtitle-bot
-Tentative plan for Feb 2021:
-1. Move from moviepy to ffmpeg for everything
-- Move to following design:
-Download manager: handles downloading twitter videos
-Data preparer: handles extracting audio from videos
-GCP interface: uploads audio files + gets response from GCP STT
-Subtitle generator: turns GCP STT responses into .srt files
-Captioned Video Generator: generates new video with subtitles
-Upload Manager: replies to tweets with new video (or link to new video) (or text)
+
+## Operation:
+`delete_tweets_job.py` should run every fifteen minutes. It checks if original tweets can no
+longer be publicly accessed and, if so, deletes the bot tweet(s) of the subtitled video
+(or transcription text, or "We couldn't find a video" message, etc). This is done to protect
+users' privacy.
+
+
 
