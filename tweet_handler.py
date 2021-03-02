@@ -70,29 +70,29 @@ def write_video_to_audio_file():
     sf.write(misc.LATEST_AUDIO_NAME, y, misc.TARGET_SAMPLE_RATE, format='flac')
 
 
-def reply_to_tweet(tweet_id, author, use_video=False, text=None):
+def reply_to_tweet(original_tweet_id, mention_id, author, use_video=False, text=None):
     if use_video:
         video = open('data/final_video.mp4', 'rb')
         response = twitter.upload_video(media=video, media_type='video/mp4')
-        response = twitter.update_status(status="Transcribed video for {}.".format(author), media_ids=[response['media_id']], in_reply_to_status_id=tweet_id)
+        response = twitter.update_status(status="Transcribed video for {}.".format(author), media_ids=[response['media_id']], in_reply_to_status_id=mention_id)
         
-        tweet = Tweet(tweet_id)
+        tweet = Tweet(original_tweet_id)
         reply = Tweet(response['id'], datetime.now())
         tweet.insert_into_mongo([reply])
 
         print("Reply sent.")
         return
     else:
-        tweet = Tweet(tweet_id)
+        original_tweet = Tweet(original_tweet_id)
         replies = []
+        current_tweet_id = mention_id
         while len(text) > 0:
             # convert into multiple tweets
-            print(tweet_id)
-            response = twitter.update_status(status=text[:280], in_reply_to_status_id=tweet_id)
-            tweet_id = response['id']
+            response = twitter.update_status(status=text[:280], in_reply_to_status_id=current_tweet_id)
+            current_tweet_id = response['id']
             text = text[280:]
-            replies.append(tweet_id)
-        tweet.insert_into_mongo(replies)
+            replies.append(Tweet(current_tweet_id))
+        original_tweet.insert_into_mongo(replies)
 
     print("Reply sent.")
 
@@ -101,19 +101,32 @@ def process_one_video(tweet_id=None, mention_id=None, author=None):
     and less than 3 minutes, and replies with uploaded, captioned video for
     videos shorter than 30 seconds."""
 
+    print(f"Received request to caption tweet https://twitter.com/fake_username/status/{tweet_id}")
+
     if author.lower() == "@videosubtitle":
         print("Can't transcribe video for self.")
         return
+    
+    original_tweet = Tweet(tweet_id)
+    
+    if original_tweet.is_in_mongo():
+        print("Tweet already has been captioned. Replying with captioned version.")
+        responses = original_tweet.get_response_tweet_ids()
+        reply_to_tweet(tweet_id, mention_id, author, text=author + f" https://twitter.com/videosubtitle/status/{responses[0]}")
+        return
+
+    print("Tweet has not yet been captioned.")
+
     try:
         download_video(tweet_id)
     except Exception as e:
         print(e)
-        reply_to_tweet(mention_id, author, text=author + " Sorry, we couldn't find a video.")
+        reply_to_tweet(tweet_id, mention_id, author, text=author + " Sorry, we couldn't find a video.")
         return
     
     # For now, don't process a tweet longer than 3 minutes
     if VIDEO_LENGTH.total_seconds() >= 180:
-        reply_to_tweet(mention_id, author, text=author + " Sorry, this video is too long to transcribe.")
+        reply_to_tweet(tweet_id, mention_id, author, text=author + " Sorry, this video is too long to transcribe.")
         return
 
     write_video_to_audio_file()
@@ -122,11 +135,11 @@ def process_one_video(tweet_id=None, mention_id=None, author=None):
 
     text = generate_subtitles(stt_response)["text"]
     if os.stat("data/subtitles.srt").st_size == 0:
-        reply_to_tweet(mention_id, author, False, author + " Sorry, we weren't able to parse any words from this tweet.")
+        reply_to_tweet(tweet_id, mention_id, author, False, author + " Sorry, we weren't able to parse any words from this tweet.")
         return
 
     if VIDEO_LENGTH.total_seconds() >= 30:
-        reply_to_tweet(mention_id, author, False, author + " Video too long to upload. Transcription: " + text)
+        reply_to_tweet(tweet_id, mention_id, author, False, author + " Video too long to upload. Transcription: " + text)
     else:
         generate_captioned_video()
-        reply_to_tweet(mention_id, author, True)
+        reply_to_tweet(tweet_id, mention_id, author, True)
