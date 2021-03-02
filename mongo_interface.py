@@ -15,10 +15,10 @@ class Tweet:
     def is_in_mongo(self):
         return True if collection.find_one({"tweet_id": self.id}) else False
 
-    def get_response_tweet(self):
+    def get_response_tweet_ids(self):
         entry = collection.find_one({"tweet_id": self.id})
         if entry:
-            return entry.captioned_tweet_id
+            return entry['captioned_tweet_ids']
         else:
             return None
 
