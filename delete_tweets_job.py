@@ -1,4 +1,4 @@
-from mongo_interface import *
+from tweet import *
 from datetime import datetime, timedelta
 from twython import Twython, exceptions
 

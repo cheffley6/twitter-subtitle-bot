@@ -12,7 +12,7 @@ from video_handler import *
 from gcp_interface import upload_blob, get_gcs_transcription
 from subtitle_generator import generate_subtitles
 
-from mongo_interface import *
+from tweet import *
 
 
 
@@ -35,13 +35,12 @@ def handle_m3u8(video_url):
 
 
 def download_video(id):
-    tweet = twitter.show_status(id=id, tweet_mode="extended")
+    source_tweet = twitter.show_status(id=id, tweet_mode="extended")
 
-    # problem: twitter doesn't allow you to fetch the raw video for some tweets
     # pprint(tweet, open("checkmeout3.txt", "w"))
     video_url = None
     try:
-        video_url = tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
+        video_url = source_tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
         print("Downloading " + video_url)
         if ".m3u8" in video_url:
             handle_m3u8(video_url)

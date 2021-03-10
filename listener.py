@@ -4,7 +4,7 @@ from pprint import pprint
 
 from config import twitter_credentials
 from tweet_handler import handle_tweet
-from mongo_interface import Tweet
+from tweet import Tweet
 
 
 # TweetStreamListener class inherits from tweepy.StreamListener and overrides on_status/on_error methods.
