@@ -96,14 +96,14 @@ def reply_to_tweet(original_tweet_id, mention_id, author, use_video=False, text=
 
     print("Reply sent.")
 
-def process_one_video(tweet_id=None, mention_id=None, author=None):
+def process_one_video(tweet_id=None, mention_id=None, mention_author=None, video_author=None):
     """For now, replies with stacked tweets for videos longer than 30 seconds
     and less than 3 minutes, and replies with uploaded, captioned video for
     videos shorter than 30 seconds."""
 
     print(f"Received request to caption tweet https://twitter.com/fake_username/status/{tweet_id}")
 
-    if author.lower() == "@videosubtitle":
+    if video_author.lower() == "@videosubtitle":
         print("Can't transcribe video for self.")
         return
     
@@ -112,7 +112,7 @@ def process_one_video(tweet_id=None, mention_id=None, author=None):
     if original_tweet.is_in_mongo():
         print("Tweet already has been captioned. Replying with captioned version.")
         responses = original_tweet.get_response_tweet_ids()
-        reply_to_tweet(tweet_id, mention_id, author, text=author + f" https://twitter.com/videosubtitle/status/{responses[0]}")
+        reply_to_tweet(tweet_id, mention_id, mention_author, text=mention_author + f" https://twitter.com/videosubtitle/status/{responses[0]}")
         return
 
     print("Tweet has not yet been captioned.")
@@ -121,12 +121,12 @@ def process_one_video(tweet_id=None, mention_id=None, author=None):
         download_video(tweet_id)
     except Exception as e:
         print(e)
-        reply_to_tweet(tweet_id, mention_id, author, text=author + " Sorry, we couldn't find a video.")
+        reply_to_tweet(tweet_id, mention_id, mention_author, text=mention_author + " Sorry, we couldn't find a video.")
         return
     
     # For now, don't process a tweet longer than 3 minutes
     if VIDEO_LENGTH.total_seconds() >= 180:
-        reply_to_tweet(tweet_id, mention_id, author, text=author + " Sorry, this video is too long to transcribe.")
+        reply_to_tweet(tweet_id, mention_id, mention_author, text=mention_author + " Sorry, this video is too long to transcribe.")
         return
 
     write_video_to_audio_file()
@@ -135,11 +135,11 @@ def process_one_video(tweet_id=None, mention_id=None, author=None):
 
     text = generate_subtitles(stt_response)["text"]
     if os.stat("data/subtitles.srt").st_size == 0:
-        reply_to_tweet(tweet_id, mention_id, author, False, author + " Sorry, we weren't able to parse any words from this tweet.")
+        reply_to_tweet(tweet_id, mention_id, mention_author, False, mention_author + " Sorry, we weren't able to parse any words from this tweet.")
         return
 
     if VIDEO_LENGTH.total_seconds() >= 30:
-        reply_to_tweet(tweet_id, mention_id, author, False, author + " Video too long to upload. Transcription: " + text)
+        reply_to_tweet(tweet_id, mention_id, mention_author, False, mention_author + " Video too long to upload. Transcription: " + text)
     else:
         generate_captioned_video()
-        reply_to_tweet(tweet_id, mention_id, author, True)
+        reply_to_tweet(tweet_id, mention_id, mention_author, True)
