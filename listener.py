@@ -1,33 +1,26 @@
-import tweepy
+from tweepy import OAuthHandler, API, Stream, StreamListener
 import sys
 from pprint import pprint
 
 from config import twitter_credentials
-from tweet_handler import *
+from tweet_handler import handle_tweet
 
 
 
-# StreamListener class inherits from tweepy.StreamListener and overrides on_status/on_error methods.
-class StreamListener(tweepy.StreamListener):
+# TweetStreamListener class inherits from tweepy.StreamListener and overrides on_status/on_error methods.
+class TweetStreamListener(StreamListener):
     def on_status(self, status):
         # if "retweeted_status" attribute exists, flag this tweet as a retweet.
         is_retweet = hasattr(status, "retweeted_status")
         if is_retweet:
             return
-
-        text = None
-        # check if text has been truncated
-        if hasattr(status,"extended_tweet"):
-            text = status.extended_tweet["full_text"]
-        else:
-            text = status.text
         
-        tweet_id = status.in_reply_to_status_id
-        mention_author = "@" + status.user.screen_name
+        video_tweet_id = status.in_reply_to_status_id
+        mention_author = status.user.screen_name
         mention_id = status.id
-        video_author = "@" + status.in_reply_to_screen_name
+        video_author = status.in_reply_to_screen_name
 
-        handle_tweet(tweet_id, mention_id, mention_author, video_author)
+        handle_tweet(video_tweet_id, mention_id, mention_author, video_author)
 
     def on_error(self, status_code):
         print("Encountered streaming error (", status_code, ")")
@@ -35,13 +28,13 @@ class StreamListener(tweepy.StreamListener):
 
 if __name__ == "__main__":
     # complete authorization and initialize API endpoint
-    auth = tweepy.OAuthHandler(twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET)
+    auth = OAuthHandler(twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET)
     auth.set_access_token(twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
-    api = tweepy.API(auth)
+    api = API(auth)
 
     # initialize stream
-    streamListener = StreamListener()
-    stream = tweepy.Stream(auth=api.auth, listener=streamListener,tweet_mode='extended')
+    streamListener = TweetStreamListener()
+    stream = Stream(auth=api.auth, listener=streamListener, tweet_mode='extended')
 
     tags = ["@VideoSubtitle"]
     stream.filter(track=tags)

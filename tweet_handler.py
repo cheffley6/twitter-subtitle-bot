@@ -9,7 +9,7 @@ import ffmpeg
 
 from config import misc, twitter_credentials
 from video_handler import *
-from gcp_interface import *
+from gcp_interface import upload_blob, get_gcs_transcription
 from subtitle_generator import generate_subtitles
 
 from mongo_interface import *
@@ -86,7 +86,7 @@ def handle_tweet(video_tweet_id=None, mention_id=None, mention_author=None, vide
 
     print(f"Received request to caption tweet https://twitter.com/fake_username/status/{video_tweet_id}")
 
-    if video_author.lower() == "@videosubtitle":
+    if video_author.lower() == "videosubtitle":
         print("Can't transcribe video for self.")
         return
     
