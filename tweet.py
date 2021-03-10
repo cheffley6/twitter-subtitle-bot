@@ -45,8 +45,6 @@ class Tweet:
                 "success": 0,
                 "error_text": "Error inserting to Mongo (to-do: get Mongo error text for here)."
             }
-        
-
 
     def remove_from_mongo(self):
         collection.delete_one({"tweet_id": self.id})

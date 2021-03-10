@@ -14,23 +14,15 @@ from subtitle_generator import generate_subtitles
 
 from tweet import *
 
-
-
-
 twitter = Twython(
     twitter_credentials.TWITTER_CONSUMER_KEY, twitter_credentials.TWITTER_CONSUMER_SECRET,
     twitter_credentials.TWITTER_ACCESS_KEY, twitter_credentials.TWITTER_ACCESS_SECRET)
 
-
-    
-    
-
 def handle_m3u8(video_url):
-
-        command = f"ffmpeg -i {video_url} -bsf:a aac_adtstoasc -vcodec copy -c copy -crf 50 {misc.LATEST_VIDEO_NAME} -y"
-        print('executing: ')
-        print(command)
-        os.system(command)
+    command = f"ffmpeg -i {video_url} -bsf:a aac_adtstoasc -vcodec copy -c copy -crf 50 {misc.LATEST_VIDEO_NAME} -y"
+    print('executing: ')
+    print(command)
+    os.system(command)
 
 
 
