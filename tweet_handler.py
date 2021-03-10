@@ -47,7 +47,8 @@ def download_video(id):
 def reply_to_tweet(video_tweet, mention_tweet, use_video=False, text=None):
     if use_video:
         video = open('data/final_video.mp4', 'rb')
-        response = twitter.upload_video(media=video, media_type='video/mp4', media_category='tweet_video')
+        response = twitter.upload_video(media=video, media_type='video/mp4',
+            media_category='tweet_video', check_progress=True)
         response = twitter.update_status(status="Transcribed video for @{}.".format(mention_tweet.user_screen_name), media_ids=[response['media_id']], in_reply_to_status_id=mention_tweet.id)
         
         reply = Tweet(response['id'], "videosubtitle")
@@ -108,8 +109,8 @@ def handle_tweet(video_tweet, mention_tweet):
         reply_to_tweet(video_tweet, mention_tweet, False, "@" + mention_tweet.user_screen_name + " Sorry, we weren't able to parse any words from this video.")
         return
     print("Total video length is", misc.VIDEO_LENGTH.total_seconds())
-    if misc.VIDEO_LENGTH.total_seconds() >= 30:
-        reply_to_tweet(video_tweet, mention_tweet, False, "@" + mention_tweet.user_screen_name + " Video too long to upload. Transcription: " + text)
-    else:
-        generate_captioned_video()
-        reply_to_tweet(video_tweet, mention_tweet, True)
+    # if misc.VIDEO_LENGTH.total_seconds() >= 30:
+    #     reply_to_tweet(video_tweet, mention_tweet, False, "@" + mention_tweet.user_screen_name + " Video too long to upload. Transcription: " + text)
+    # else:
+    generate_captioned_video()
+    reply_to_tweet(video_tweet, mention_tweet, True)
