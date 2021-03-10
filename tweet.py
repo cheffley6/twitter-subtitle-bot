@@ -8,9 +8,11 @@ collection = database.tweets
 
 class Tweet:
 
-    def __init__(self, id, create_date=None):
+    def __init__(self, id, user_screen_name, in_reply_to_status_id=None, in_reply_to_screen_name=None):
         self.id = id
-        self.create_date = create_date
+        self.user_screen_name = user_screen_name
+        self.in_reply_to_status_id = in_reply_to_status_id
+        self.in_reply_to_screen_name = in_reply_to_screen_name
     
     def is_in_mongo(self):
         return True if collection.find_one({"tweet_id": self.id}) else False
@@ -32,7 +34,6 @@ class Tweet:
         response = collection.insert_one({
             "tweet_id": self.id,
             "captioned_tweet_ids": [t.id for t in captioned_tweets],
-            "create_date": captioned_tweets[0].create_date
         })
 
         if response and response.inserted_id:
@@ -44,8 +45,6 @@ class Tweet:
                 "success": 0,
                 "error_text": "Error inserting to Mongo (to-do: get Mongo error text for here)."
             }
-        
-
 
     def remove_from_mongo(self):
         collection.delete_one({"tweet_id": self.id})
@@ -54,9 +53,9 @@ class Tweet:
 
 if __name__ == "__main__":
     print("Testing mongo interface.")
-    fake_tweet = Tweet(-1)
-    fake_captioned_tweet = Tweet(-2, datetime.now())
-    fake_second_captioned_tweet = Tweet(-3, datetime.now())
+    fake_tweet = Tweet(-1, "null_author")
+    fake_captioned_tweet = Tweet(-2, "videosubtitle")
+    fake_second_captioned_tweet = Tweet(-3, "videosubtitle")
 
     assert not fake_tweet.is_in_mongo()
     fake_tweet.insert_into_mongo([fake_captioned_tweet, fake_second_captioned_tweet])
