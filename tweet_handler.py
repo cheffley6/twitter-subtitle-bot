@@ -79,23 +79,21 @@ def reply_to_tweet(original_tweet_id, mention_id, author, use_video=False, text=
 
     print("Reply sent.")
 
-def handle_tweet(video_tweet_id=None, mention_id=None, mention_author=None, video_author=None):
+def handle_tweet(video_tweet, mention_tweet):
     """For now, replies with stacked tweets for videos longer than 30 seconds
     and less than 3 minutes, and replies with uploaded, captioned video for
     videos shorter than 30 seconds."""
 
     print(f"Received request to caption tweet https://twitter.com/fake_username/status/{video_tweet_id}")
 
-    if video_author.lower() == "videosubtitle":
+    if video_tweet.user_screen_name.lower() == "videosubtitle":
         print("Can't transcribe video for self.")
         return
     
-    original_tweet = Tweet(video_tweet_id)
-    
-    if original_tweet.is_in_mongo():
+    if video_tweet.is_in_mongo():
         print("Tweet already has been captioned. Replying with captioned version.")
-        responses = original_tweet.get_response_tweet_ids()
-        reply_to_tweet(video_tweet_id, mention_id, mention_author, text=mention_author + f" https://twitter.com/videosubtitle/status/{responses[0]}")
+        responses = video_tweet.get_response_tweet_ids()
+        reply_to_tweet(video_tweet, mention_tweet, text="@" + mention_tweet.user_screen_name + f" https://twitter.com/videosubtitle/status/{responses[0]}")
         return
 
     print("Tweet has not yet been captioned.")

@@ -4,7 +4,7 @@ from pprint import pprint
 
 from config import twitter_credentials
 from tweet_handler import handle_tweet
-
+from mongo_interface import Tweet
 
 
 # TweetStreamListener class inherits from tweepy.StreamListener and overrides on_status/on_error methods.
@@ -20,7 +20,10 @@ class TweetStreamListener(StreamListener):
         mention_id = status.id
         video_author = status.in_reply_to_screen_name
 
-        handle_tweet(video_tweet_id, mention_id, mention_author, video_author)
+        video_tweet = Tweet(video_tweet_id, video_author)
+        mention_tweet = Tweet(mention_id, mention_author, video_tweet_id, video_author)
+
+        handle_tweet(video_tweet, mention_tweet)
 
     def on_error(self, status_code):
         print("Encountered streaming error (", status_code, ")")

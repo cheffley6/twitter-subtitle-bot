@@ -4,8 +4,6 @@ from twython import Twython, exceptions
 
 from config import twitter_credentials
 
-
-# This cron job automatically deletes the bot's video/transcript tweets once they are four weeks old
 # It also deletes the bot's video/transcript tweets if the source tweet has been deleted
 
 twitter = Twython(
