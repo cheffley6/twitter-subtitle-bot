@@ -1,7 +1,9 @@
 import ffmpeg
+from librosa import load, resample
 from moviepy import editor
 import os
 from config import misc
+from soundfile import write as sf_write
 
 
 # given:
@@ -20,6 +22,19 @@ def generate_captioned_video(transcription_path="data/subtitles.srt", video_path
         return output_path
     else:
         raise Exception("Error encoding the video.")
+
+
+# writes video's audio to LATEST_AUDIO_NAME
+def write_video_to_audio_file():
+    video_path = misc.LATEST_VIDEO_NAME
+    stream = ffmpeg.input(video_path)
+    audio = stream.audio
+    stream = ffmpeg.output(audio, misc.LATEST_AUDIO_NAME, ac=1, sample_rate=44100).overwrite_output()
+    ffmpeg.run(stream)
+
+    y, s = load(misc.LATEST_AUDIO_NAME)
+    y = resample(y, s, misc.TARGET_SAMPLE_RATE)
+    sf_write(misc.LATEST_AUDIO_NAME, y, misc.TARGET_SAMPLE_RATE, format='flac')
 
 
 if __name__ == "__main__":

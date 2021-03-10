@@ -4,8 +4,7 @@ from pprint import pprint
 
 from urllib.request import urlretrieve
 from twython import Twython
-from librosa import load, resample
-import soundfile as sf
+
 import ffmpeg
 
 from config import misc, twitter_credentials
@@ -28,12 +27,12 @@ twitter = Twython(
 
 def handle_m3u8(video_url):
 
-        command = "ffmpeg -i {} -bsf:a aac_adtstoasc -vcodec copy -c copy -crf 50 {} -y"
+        command = f"ffmpeg -i {video_url} -bsf:a aac_adtstoasc -vcodec copy -c copy -crf 50 {misc.LATEST_VIDEO_NAME} -y"
         print('executing: ')
-        print(command.format(video_url, misc.LATEST_VIDEO_NAME))
-        os.system(command.format(video_url, misc.LATEST_VIDEO_NAME))
+        print(command)
+        os.system(command)
 
-VIDEO_LENGTH = 0.0
+
 
 def download_video(id):
     tweet = twitter.show_status(id=id, tweet_mode="extended")
@@ -51,24 +50,8 @@ def download_video(id):
     except:
         raise Exception("Couldn't find video.")
 
-    global VIDEO_LENGTH
-    VIDEO_LENGTH = timedelta(seconds=editor.VideoFileClip(misc.LATEST_VIDEO_NAME).duration)
+    misc.VIDEO_LENGTH = timedelta(seconds=editor.VideoFileClip(misc.LATEST_VIDEO_NAME).duration)
     
-
-    
-
-# writes video's audio to LATEST_AUDIO_NAME
-def write_video_to_audio_file():
-    video_path = misc.LATEST_VIDEO_NAME
-    stream = ffmpeg.input(video_path)
-    audio = stream.audio
-    stream = ffmpeg.output(audio, misc.LATEST_AUDIO_NAME, ac=1, sample_rate=44100).overwrite_output()
-    ffmpeg.run(stream)
-
-    y, s = load(misc.LATEST_AUDIO_NAME)
-    y = resample(y, s, misc.TARGET_SAMPLE_RATE)
-    sf.write(misc.LATEST_AUDIO_NAME, y, misc.TARGET_SAMPLE_RATE, format='flac')
-
 
 def reply_to_tweet(original_tweet_id, mention_id, author, use_video=False, text=None):
     if use_video:
@@ -125,7 +108,7 @@ def handle_tweet(video_tweet_id=None, mention_id=None, mention_author=None, vide
         return
     
     # For now, don't process a tweet longer than 3 minutes
-    if VIDEO_LENGTH.total_seconds() >= 180:
+    if misc.VIDEO_LENGTH.total_seconds() >= 180:
         reply_to_tweet(video_tweet_id, mention_id, mention_author, text=mention_author + " Sorry, this video is too long to transcribe.")
         return
 
@@ -135,10 +118,10 @@ def handle_tweet(video_tweet_id=None, mention_id=None, mention_author=None, vide
 
     text = generate_subtitles(stt_response)["text"]
     if os.stat("data/subtitles.srt").st_size == 0:
-        reply_to_tweet(video_tweet_id, mention_id, mention_author, False, mention_author + " Sorry, we weren't able to parse any words from this tweet.")
+        reply_to_tweet(video_tweet_id, mention_id, mention_author, False, mention_author + " Sorry, we weren't able to parse any words from this video.")
         return
 
-    if VIDEO_LENGTH.total_seconds() >= 30:
+    if misc.VIDEO_LENGTH.total_seconds() >= 30:
         reply_to_tweet(video_tweet_id, mention_id, mention_author, False, mention_author + " Video too long to upload. Transcription: " + text)
     else:
         generate_captioned_video()
