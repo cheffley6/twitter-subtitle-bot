@@ -27,7 +27,7 @@ class StreamListener(tweepy.StreamListener):
         mention_id = status.id
         video_author = "@" + status.in_reply_to_screen_name
 
-        process_one_video(tweet_id, mention_id, mention_author, video_author)
+        handle_tweet(tweet_id, mention_id, mention_author, video_author)
 
     def on_error(self, status_code):
         print("Encountered streaming error (", status_code, ")")

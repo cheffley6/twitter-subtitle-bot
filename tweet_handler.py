@@ -84,7 +84,7 @@ def handle_tweet(video_tweet_id=None, mention_id=None, mention_author=None, vide
     and less than 3 minutes, and replies with uploaded, captioned video for
     videos shorter than 30 seconds."""
 
-    print(f"Received request to caption tweet https://twitter.com/fake_username/status/{tweet_id}")
+    print(f"Received request to caption tweet https://twitter.com/fake_username/status/{video_tweet_id}")
 
     if video_author.lower() == "@videosubtitle":
         print("Can't transcribe video for self.")
