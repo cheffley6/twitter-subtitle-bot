@@ -55,9 +55,9 @@ class Tweet:
 
 if __name__ == "__main__":
     print("Testing mongo interface.")
-    fake_tweet = Tweet(-1)
-    fake_captioned_tweet = Tweet(-2, datetime.now())
-    fake_second_captioned_tweet = Tweet(-3, datetime.now())
+    fake_tweet = Tweet(-1, "null_author")
+    fake_captioned_tweet = Tweet(-2, "videosubtitle")
+    fake_second_captioned_tweet = Tweet(-3, "videosubtitle")
 
     assert not fake_tweet.is_in_mongo()
     fake_tweet.insert_into_mongo([fake_captioned_tweet, fake_second_captioned_tweet])

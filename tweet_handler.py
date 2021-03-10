@@ -53,29 +53,27 @@ def download_video(id):
     misc.VIDEO_LENGTH = timedelta(seconds=editor.VideoFileClip(misc.LATEST_VIDEO_NAME).duration)
     
 
-def reply_to_tweet(original_tweet_id, mention_id, author, use_video=False, text=None):
+def reply_to_tweet(video_tweet, mention_tweet, use_video=False, text=None):
     if use_video:
         video = open('data/final_video.mp4', 'rb')
         response = twitter.upload_video(media=video, media_type='video/mp4')
-        response = twitter.update_status(status="Transcribed video for {}.".format(author), media_ids=[response['media_id']], in_reply_to_status_id=mention_id)
+        response = twitter.update_status(status="Transcribed video for @{}.".format(mention_tweet.user_screen_name), media_ids=[response['media_id']], in_reply_to_status_id=mention_tweet.id)
         
-        tweet = Tweet(original_tweet_id)
-        reply = Tweet(response['id'], datetime.now())
-        tweet.insert_into_mongo([reply])
+        reply = Tweet(response['id'], "videosubtitle")
+        video_tweet.insert_into_mongo([reply])
 
         print("Reply sent.")
         return
     else:
-        original_tweet = Tweet(original_tweet_id)
         replies = []
-        current_tweet_id = mention_id
+        current_tweet_id = mention_tweet.id
         while len(text) > 0:
             # convert into multiple tweets
             response = twitter.update_status(status=text[:280], in_reply_to_status_id=current_tweet_id)
             current_tweet_id = response['id']
             text = text[280:]
-            replies.append(Tweet(current_tweet_id))
-        original_tweet.insert_into_mongo(replies)
+            replies.append(Tweet(current_tweet_id, "videosubtitle"))
+        video_tweet.insert_into_mongo(replies)
 
     print("Reply sent.")
 
@@ -84,7 +82,7 @@ def handle_tweet(video_tweet, mention_tweet):
     and less than 3 minutes, and replies with uploaded, captioned video for
     videos shorter than 30 seconds."""
 
-    print(f"Received request to caption tweet https://twitter.com/fake_username/status/{video_tweet_id}")
+    print(f"Received request to caption tweet https://twitter.com/fake_username/status/{video_tweet.id}")
 
     if video_tweet.user_screen_name.lower() == "videosubtitle":
         print("Can't transcribe video for self.")
@@ -99,15 +97,15 @@ def handle_tweet(video_tweet, mention_tweet):
     print("Tweet has not yet been captioned.")
 
     try:
-        download_video(video_tweet_id)
+        download_video(video_tweet.id)
     except Exception as e:
         print(e)
-        reply_to_tweet(video_tweet_id, mention_id, mention_author, text=mention_author + " Sorry, we couldn't find a video.")
+        reply_to_tweet(video_tweet, mention_tweet, text="@" + mention_tweet.user_screen_name + " Sorry, we couldn't find a video.")
         return
     
     # For now, don't process a tweet longer than 3 minutes
     if misc.VIDEO_LENGTH.total_seconds() >= 180:
-        reply_to_tweet(video_tweet_id, mention_id, mention_author, text=mention_author + " Sorry, this video is too long to transcribe.")
+        reply_to_tweet(video_tweet, mention_tweet, text="@" + mention_tweet.user_screen_name + " Sorry, this video is too long to transcribe.")
         return
 
     write_video_to_audio_file()
@@ -116,11 +114,11 @@ def handle_tweet(video_tweet, mention_tweet):
 
     text = generate_subtitles(stt_response)["text"]
     if os.stat("data/subtitles.srt").st_size == 0:
-        reply_to_tweet(video_tweet_id, mention_id, mention_author, False, mention_author + " Sorry, we weren't able to parse any words from this video.")
+        reply_to_tweet(video_tweet, mention_tweet, False, "@" + mention_tweet.user_screen_name + " Sorry, we weren't able to parse any words from this video.")
         return
 
     if misc.VIDEO_LENGTH.total_seconds() >= 30:
-        reply_to_tweet(video_tweet_id, mention_id, mention_author, False, mention_author + " Video too long to upload. Transcription: " + text)
+        reply_to_tweet(video_tweet, mention_tweet, False, "@" + mention_tweet.user_screen_name + " Video too long to upload. Transcription: " + text)
     else:
         generate_captioned_video()
-        reply_to_tweet(video_tweet_id, mention_id, mention_author, True)
+        reply_to_tweet(video_tweet, mention_tweet, True)
