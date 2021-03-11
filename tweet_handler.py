@@ -53,6 +53,7 @@ def reply_to_tweet(video_tweet, mention_tweet, use_video=False, text=None):
         
         reply = Tweet(response['id'], "videosubtitle")
         video_tweet.insert_into_mongo([reply])
+        os.remove('data/final_video.mp4')
 
         print("Reply sent.")
         return
@@ -66,7 +67,7 @@ def reply_to_tweet(video_tweet, mention_tweet, use_video=False, text=None):
             text = text[280:]
             replies.append(Tweet(current_tweet_id, "videosubtitle"))
         video_tweet.insert_into_mongo(replies)
-
+    delete_video()
     print("Reply sent.")
 
 def handle_tweet(video_tweet, mention_tweet):

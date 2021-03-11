@@ -36,6 +36,9 @@ def write_video_to_audio_file():
     y = resample(y, s, misc.TARGET_SAMPLE_RATE)
     sf_write(misc.LATEST_AUDIO_NAME, y, misc.TARGET_SAMPLE_RATE, format='flac')
 
+def delete_video():
+    video_path = misc.LATEST_VIDEO_NAME
+    os.remove(video_path)
 
 if __name__ == "__main__":
     print("Testing video_handler")
