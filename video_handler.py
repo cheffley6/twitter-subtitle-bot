@@ -36,7 +36,7 @@ def write_video_to_audio_file():
     y = resample(y, s, misc.TARGET_SAMPLE_RATE)
     sf_write(misc.LATEST_AUDIO_NAME, y, misc.TARGET_SAMPLE_RATE, format='flac')
 
-def delete_video():
+def clean_data():
     video_path = misc.LATEST_VIDEO_NAME
     os.remove(video_path)
 
