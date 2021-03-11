@@ -39,7 +39,8 @@ def write_video_to_audio_file():
 def clean_data():
     video_path = misc.LATEST_VIDEO_NAME
     os.remove(video_path)
-
+    os.remove(misc.LATEST_AUDIO_NAME)
+    os.remove("data/subtitles.srt")
 if __name__ == "__main__":
     print("Testing video_handler")
     generate_captioned_video(
