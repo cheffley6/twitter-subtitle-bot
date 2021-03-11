@@ -32,14 +32,17 @@ def download_video(id):
     # pprint(tweet, open("checkmeout3.txt", "w"))
     video_url = None
     try:
+        is_sensitive = source_tweet['possibly_sensitive']
+        if is_sensitive:
+            raise Exception("Tweet contains sensitive info.")
         video_url = source_tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
         print("Downloading " + video_url)
         if ".m3u8" in video_url:
             handle_m3u8(video_url)
         else:
             urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
-    except:
-        raise Exception("Couldn't find video.")
+    except Exception as e:
+        raise e
 
     misc.VIDEO_LENGTH = timedelta(seconds=editor.VideoFileClip(misc.LATEST_VIDEO_NAME).duration)
     
