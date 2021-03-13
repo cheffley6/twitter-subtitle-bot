@@ -73,7 +73,8 @@ def handle_tweet(video_tweet, mention_tweet):
     """For now, replies with stacked tweets for videos longer than 30 seconds
     and less than 3 minutes, and replies with uploaded, captioned video for
     videos shorter than 30 seconds."""
-
+    if video_tweet.user_screen_name == None:
+        return
     print(f"Received request to caption tweet https://twitter.com/fake_username/status/{video_tweet.id}")
 
     if video_tweet.user_screen_name.lower() == "videosubtitle":
