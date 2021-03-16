@@ -34,7 +34,8 @@ def download_video(id):
     try:
         is_sensitive = source_tweet['possibly_sensitive']
         if is_sensitive:
-            raise Exception("Tweet contains sensitive info.")
+            reply_to_tweet(video_tweet, mention_tweet, text="@" + mention_tweet.user_screen_name + " Tweet contains sensitive info.")
+            return
         video_url = source_tweet['extended_entities']['media'][0]['video_info']['variants'][0]['url']
         print("Downloading " + video_url)
         if ".m3u8" in video_url:
@@ -42,6 +43,7 @@ def download_video(id):
         else:
             urlretrieve(video_url, misc.LATEST_VIDEO_NAME)
     except Exception as e:
+        reply_to_tweet(video_tweet, mention_tweet, text="@" + mention_tweet.user_screen_name + " Sorry, we couldn't find a video.")
         raise e
 
     misc.VIDEO_LENGTH = timedelta(seconds=editor.VideoFileClip(misc.LATEST_VIDEO_NAME).duration)
@@ -92,10 +94,9 @@ def handle_tweet(video_tweet, mention_tweet):
     print("Tweet has not yet been captioned.")
 
     try:
-        download_video(video_tweet.id)
+        download_video(video_tweet.id, video_tweet, mention_tweet)
     except Exception as e:
         print(e)
-        reply_to_tweet(video_tweet, mention_tweet, text="@" + mention_tweet.user_screen_name + " Sorry, we couldn't find a video.")
         return
     
     # For now, don't process a tweet longer than 3 minutes
