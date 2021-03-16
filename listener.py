@@ -22,7 +22,7 @@ class TweetStreamListener(StreamListener):
 
         video_tweet = Tweet(video_tweet_id, video_author)
         mention_tweet = Tweet(mention_id, mention_author, video_tweet_id, video_author)
-
+        
         handle_tweet(video_tweet, mention_tweet)
 
     def on_error(self, status_code):
